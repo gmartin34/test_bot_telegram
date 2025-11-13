@@ -1,0 +1,72 @@
+/* Estilos personalizados para el dashboard */
+
+/* Ajustes para las alertas de estadísticas */
+.alert h4 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.alert p {
+    font-size: 0.9rem;
+}
+
+.alert hr {
+    margin: 0.5rem 0;
+    opacity: 0.25;
+}
+
+/* Mejoras para las tarjetas */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+/* Tabla mejorada */
+.table-sm td, .table-sm th {
+    padding: 0.5rem;
+}
+
+/* Animación para los números */
+.alert-heading {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .alert h4 {
+        font-size: 1.5rem;
+    }
+    
+    #page-content {
+        margin-left: 0 !important;
+    }
+    
+    .sidebar {
+        display: none;
+    }
+}
+/* Estilos tabla */
+
+.table-row-even { background-color: #f8f9fa !important; }
+.table-row-odd  { background-color: #e9ecef !important; }
