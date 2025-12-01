@@ -1,6 +1,6 @@
 from telebot.types import CallbackQuery
 from keyboards.inline_buttons import buttons_play
-from handlers.start_handler import quiz_sessions, send_question, iniciar_juego # Importamos la sesi��n del test
+from handlers.start_handler import quiz_sessions, send_question, iniciar_juego # Importamos la sesión del test
 from database.db_connection import db_connection
 from database.db_sql import register_answer
 
@@ -27,17 +27,17 @@ def callback_response(bot, call: CallbackQuery):
         bot.answer_callback_query(call.id, "?Comenzando el juego!")
         return
     
-    # Manejar cancelaci��n de jugar
+    # Manejar cancelacion de jugar
     elif call.data.startswith("cancelar_jugar_"):
-        # Eliminar el mensaje de confirmaci��n
+        # Eliminar el mensaje de confirmación
         bot.delete_message(chat_id, call.message.message_id)
         
-        # Eliminar sesi��n si existe
+        # Eliminar sesión si existe
         if chat_id in quiz_sessions:
             del quiz_sessions[chat_id]
         
         # Enviar mensaje de despedida
-        bot.send_message(chat_id, "?? De acuerdo. ?Hasta la pr��xima!\n\nUsa /jugar cuando quieras comenzar.")
+        bot.send_message(chat_id, "De acuerdo. Hasta la próxima!\n\nUsa /jugar cuando quieras comenzar.")
         
         # Responder al callback
         bot.answer_callback_query(call.id, "Juego cancelado")
@@ -70,14 +70,14 @@ def callback_response(bot, call: CallbackQuery):
         bot.answer_callback_query(call.id)
         return
     
-    # Manejar respuestas a preguntas (c��digo existente)
+    # Manejar respuestas a preguntas (código existente)
     if call.data == "1" or call.data == "2" or call.data == "3" or call.data == "4":
 
         if not session or session.get("estado") != "jugando":
             bot.answer_callback_query(call.id, "? Sesión no válida. Usa /jugar para comenzar.")
             return
 
-        # Obtener informaci��n de la pregunta actual
+        # Obtener información de la pregunta actual
         current_question = quiz_sessions[chat_id]["questions"][session["current_index"]]
         question_id = current_question[0]  # ID de la pregunta
         correct_answer = current_question[5]  # Respuesta correcta
@@ -91,7 +91,7 @@ def callback_response(bot, call: CallbackQuery):
         else:
             format_question_text = f"❌ Respuesta incorrecta ¡Qué pena!! \n <b>Motivo:</b> \n {reason}"
 
-        # Eliminar botones despu��s de responder
+        # Eliminar botones después de responder
         bot.edit_message_reply_markup(chat_id, call.message.message_id, reply_markup=None)
         bot.edit_message_text(f" {format_question_text} ", chat_id, call.message.message_id, parse_mode="HTML")
         

@@ -61,8 +61,10 @@ def handle_visionado(bot, message, db):
             
             porcentaje_completado = (preguntas_respondidas / total_preguntas * 100) if total_preguntas > 0 else 0
             porcentaje_acierto_primero = (aciertos_primer / preguntas_respondidas * 100) if preguntas_respondidas > 0 else 0
-            porcentaje_acierto_segundo = (aciertos_segundo / total_segundo * 100) if preguntas_respondidas > 0 else 0
-            
+            if total_segundo > 0:
+                porcentaje_acierto_segundo = (aciertos_segundo / total_segundo * 100) if preguntas_respondidas > 0 else 0
+            else:
+                porcentaje_acierto_segundo = 0
             mensaje = f"""
 📊 **ESTADÍSTICAS DE {student_name.upper()}**
 
