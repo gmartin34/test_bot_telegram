@@ -189,3 +189,61 @@ def delete_question(question_id):
 
         cursor._connection.commit()
         return cursor.rowcount > 0
+    
+def get_question_by_id(question_id, subject_id):
+    """Obtiene los datos de una pregunta por ID"""
+    query = """
+    SELECT id, id_subject, state, level, question, solution, why, answer1, answer2, answer3, answer4
+    FROM questions
+    WHERE id = %s AND id_subject = %s
+    """
+    df = execute_query_df(query, (question_id, subject_id))
+    return df.to_dict('records')[0] if not df.empty else None
+
+def update_question(data):
+    """Actualiza una pregunta existente y devuelve True si se actualizó al menos una fila."""
+    query = """
+    UPDATE questions
+    SET id_subject = %s,
+        state = %s,
+        level = %s,
+        question = %s,
+        solution = %s,
+        why = %s,
+        answer1 = %s,
+        answer2 = %s,
+        answer3 = %s,
+        answer4 = %s
+    WHERE id = %s
+    """
+    params = (
+        data.get("id_subject"),
+        data.get("state"),
+        data.get("level"),
+        data.get("question"),
+        data.get("solution"),
+        data.get("why"),
+        data.get("answer1"),
+        data.get("answer2"),
+        data.get("answer3"),
+        data.get("answer4"),
+        data.get("id")
+    )
+    from database.db_connection import db_connection
+    db = db_connection()
+    cursor = db.cursor()
+    try:
+        print("DEBUG update_question -> SQL:", query)
+        print("DEBUG update_question -> params:", params)
+        cursor.execute(query, params)
+        affected = cursor.rowcount
+        db.commit()
+        print(f"DEBUG update_question -> filas afectadas: {affected}")
+        return affected > 0
+    except Exception as e:
+        print("Error actualizando pregunta:", e)
+        db.rollback()
+        return False
+    finally:
+        cursor.close()
+        db.close()

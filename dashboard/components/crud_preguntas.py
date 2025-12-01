@@ -4,7 +4,9 @@ from dashboard.data.crud_queries import (
     create_question,
     delete_question,
     get_all_subjects,
-    get_questions_by_subject
+    get_questions_by_subject,
+    get_question_by_id,
+    update_question 
 )
 
 
@@ -173,12 +175,19 @@ def toggle_modal(add_clicks, edit_clicks, delete_clicks, cancel_click, add_ids, 
     if "edit-btn" in trigger_id:
         button_id = json.loads(trigger_id.split(".")[0])
         subject_id, question_id = button_id["index"].split("-")
-        # Aquí puedes cargar los datos de la pregunta si lo necesitas
-        return True, f"Editar Pregunta #{question_id}", {
-            "subject_id": int(subject_id),
-            "question_id": int(question_id),
-            "mode": "edit"
-        }, False, None
+        # Cargar datos de la pregunta
+        question_data = get_question_by_id(int(question_id), int(subject_id))
+        
+        if question_data:
+            print("Datos de la pregunta para editaraaaaaaa:", question_data)
+            return True, f"Editarr Pregunta #{question_id}", {
+                 "subject_id": int(subject_id),
+                 "question_id": int(question_id),
+                 "mode": "edit",
+            **question_data  
+            }, False, None
+        else:
+            return no_update, no_update, no_update, no_update, no_update
 
     if "delete-btn" in trigger_id:
         button_id = json.loads(trigger_id.split(".")[0])
@@ -340,16 +349,24 @@ def save_question(n_clicks, temp_data, question, state, level, solution, answer1
     "answer1": answer1,
     "answer2": answer2,
     "answer3": answer3,
-    "answer4": answer4,
+    "answer4": answer4
     }
 
-    success = create_question(data)
+    # Detectar si es crear o editar
+    if temp_data.get("mode") == "edit":
+        print( "Datos para actualizarrrrrr:", data)
+        data["id"] = temp_data.get("question_id")
+        success = update_question(data)
+        message = "Pregunta actualizada correctamente"
+    else:
+        success = create_question(data)
+        message = "Pregunta guardada correctamente"
 
     if success:
-        notification = dbc.Alert("Pregunta guardada correctamente", color="success", dismissable=True, duration=3000)
-        return False, notification  # Cierra el modal y muestra mensaje
+        notification = dbc.Alert(message, color="success", dismissable=True, duration=3000)
+        return False, notification
     else:
-        notification = dbc.Alert("Error al guardar la pregunta", color="danger", dismissable=True, duration=3000)
+        notification = dbc.Alert(f"Error al guardar la pregunta", color="danger", dismissable=True, duration=3000)
         return no_update, notification
     
 
@@ -374,3 +391,32 @@ def confirm_delete(n_clicks, delete_data):
         notification = dbc.Alert("Error al eliminar la pregunta", color="danger", dismissable=True, duration=3000)
         return no_update, notification
     
+@callback(
+    Output("input-question", "value"),
+    Output("input-state", "value"),
+    Output("input-level", "value"),
+    Output("input-solution", "value"),
+    Output("input-answer1", "value"),
+    Output("input-answer2", "value"),
+    Output("input-answer3", "value"),
+    Output("input-answer4", "value"),
+    Output("input-why", "value"),
+    Input("temp-question-data", "data"),
+    prevent_initial_call=True
+)
+def fill_form_edit(temp_data):
+
+    if not temp_data or temp_data.get("mode") != "edit":
+        return "", "A", 1, "1", "", "", "", "", ""
+    
+    return (
+        temp_data.get("question", ""),
+        temp_data.get("state", "A"),
+        temp_data.get("level", 1),
+        temp_data.get("solution", "1"),
+        temp_data.get("answer1", ""),
+        temp_data.get("answer2", ""),
+        temp_data.get("answer3", ""),
+        temp_data.get("answer4", ""),
+        temp_data.get("why", "")
+    )

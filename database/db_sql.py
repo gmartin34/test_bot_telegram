@@ -124,15 +124,58 @@ def get_student_level(db, student_id):
     return result[0] if result else 1  # Por defecto nivel 1
 
 # Cargar preguntas por nivel
-def load_questions_by_level(db, level):
+def load_questions_by_level(db, level, student_id):
+#    cursor = db.cursor()
+#    query = "SELECT * FROM questions WHERE level = %s AND state = 'A'"
+#    cursor.execute(query, (level,))
+#    questions = cursor.fetchall()
+#    cursor.close()
+#    return questions
+    """
+    Carga hasta 5 preguntas del nivel especificado que el estudiante NO haya dominado.
+    Una pregunta está dominada cuando ha sido acertada 2 veces (num_attempts - mistake_number >= 2)
+    Priorización:
+    1. Preguntas nunca intentadas (nuevas)
+    2. Preguntas con errores previos (requieren refuerzo)
+    3. Preguntas con aciertos pero no dominadas (repaso)
+    """
     cursor = db.cursor()
-    query = "SELECT * FROM questions WHERE level = %s AND state = 'A'"
-    cursor.execute(query, (level,))
+    query = """
+    SELECT q.*
+    FROM questions q
+    LEFT JOIN (
+        SELECT 
+            id_question,
+            MAX(num_attempts) as num_attempts,
+            MAX(mistake_number) as mistake_number,
+            MAX(last_attempt_date) as last_attempt_date
+        FROM student_question
+        WHERE id_student = %s
+        GROUP BY id_question
+    ) sq ON q.id = sq.id_question
+    WHERE q.level = %s 
+      AND q.state = 'A'
+      AND (
+          sq.id_question IS NULL
+          OR (sq.num_attempts - sq.mistake_number) < 2
+      )
+    ORDER BY 
+        CASE 
+            WHEN sq.id_question IS NULL THEN 0
+            WHEN sq.mistake_number > 0 THEN 1
+            ELSE 2
+        END,
+        sq.last_attempt_date ASC,
+        RAND()
+    LIMIT 5
+    """
+    cursor.execute(query, (student_id, level))
     questions = cursor.fetchall()
     cursor.close()
+    
     return questions
 
-# Verificar si el estudiante completó todas las preguntas del nivel
+# Verificar si el estudiante puede promocionar de nivel
 def check_level_completion(db, student_id, level):
     cursor = db.cursor()
     
@@ -269,4 +312,35 @@ def get_view_mode(db, student_id):
     result = cursor.fetchone()
     cursor.close()
     return result[0] if result else '1'  # Por defecto modo '1' (Extendido)     
+
+# Mostrar preguntas por nivel y las preguntas que quedan por responder del nivel
+def check_number_question_level(db, student_id):
+    cursor = db.cursor()
+    
+    level = get_student_level(db, student_id)   
+    print(f"[NIVEL] Nivel actual del estudiante {student_id}: {level}")
+    # Total de preguntas del nivel
+    query_total = "SELECT COUNT(*) FROM questions WHERE level = %s AND state = 'A'"
+    #cursor.execute(query_total, (level))
+    cursor.execute(query_total, (level,))
+    total_questions = cursor.fetchone()[0]
+    
+    # Preguntas que quedan por superar correctamente
+    query_answered = """
+    SELECT COUNT(*) 
+    FROM questions q
+    WHERE q.level = %s 
+    AND q.state = 'A'
+    AND NOT EXISTS (
+      SELECT 1 
+      FROM student_question sq 
+      WHERE sq.id_student = %s 
+        AND sq.id_question = q.id 
+        AND (sq.num_attempts - sq.mistake_number) >= 2)
+    """
+    cursor.execute(query_answered, (level, student_id))
+    answered_questions = cursor.fetchone()[0]
+    
+    cursor.close()
+    return total_questions, answered_questions, level
 

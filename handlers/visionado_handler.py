@@ -41,7 +41,8 @@ def handle_visionado(bot, message, db):
             COUNT(DISTINCT sq.id_question) as preguntas_respondidas,
             SUM(sq.num_attempts) as total_intentos,
             SUM(CASE WHEN sq.first_attempt = 1 THEN 1 ELSE 0 END) as aciertos_primer_intento,
-            SUM(CASE WHEN sq.second_attempt = 1 THEN 1 ELSE 0 END) as aciertos_segundo_intento,
+            COALESCE( SUM(CASE  WHEN num_attempts >= 2 AND second_attempt = 1 THEN 1 ELSE 0 END), 0) as aciertos_segundo_intento,
+            COALESCE( SUM(CASE  WHEN num_attempts >= 2 THEN 1 ELSE 0 END), 0) as total_segundo_intento,
             (SELECT COUNT(*) FROM questions WHERE state = 'A') as total_preguntas
         FROM student_question sq
         WHERE sq.id_student = %s
@@ -55,10 +56,12 @@ def handle_visionado(bot, message, db):
             total_intentos = stats[1]
             aciertos_primer = stats[2]
             aciertos_segundo = stats[3]
-            total_preguntas = stats[4]
+            total_segundo = stats[4]
+            total_preguntas = stats[5]
             
             porcentaje_completado = (preguntas_respondidas / total_preguntas * 100) if total_preguntas > 0 else 0
             porcentaje_acierto_primero = (aciertos_primer / preguntas_respondidas * 100) if preguntas_respondidas > 0 else 0
+            porcentaje_acierto_segundo = (aciertos_segundo / total_segundo * 100) if preguntas_respondidas > 0 else 0
             
             mensaje = f"""
 📊 **ESTADÍSTICAS DE {student_name.upper()}**
@@ -66,8 +69,8 @@ def handle_visionado(bot, message, db):
 📝 Preguntas respondidas: {preguntas_respondidas} de {total_preguntas}
 📈 Progreso: {porcentaje_completado:.1f}%
 🎯 Total de intentos: {total_intentos}
-✅ Aciertos primer intento: {aciertos_primer} ({porcentaje_acierto_primero:.1f}%)
-✔️ Aciertos segundo intento: {aciertos_segundo}
+✅ Aciertos primer intento (%): {aciertos_primer} ({porcentaje_acierto_primero:.1f}%)
+✔️ Aciertos segundo intento (%): {aciertos_segundo} ({porcentaje_acierto_segundo:.1f}%) 
 
 ¡Sigue así! 💪
 """

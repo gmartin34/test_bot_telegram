@@ -86,7 +86,7 @@ def handle_promocion(bot, message, db):
 🎉 ¡Eres un verdadero maestro del Trivial UNED!
 👏 Has demostrado dominio total del contenido
 
-📊 Usa /visionado para ver tus estadísticas completas
+📊 Usa /misnumeros para ver tus estadísticas completas
 🏅 Usa /clasificacion para ver tu posición en el ranking
 """
             bot.send_message(chat_id, mensaje, parse_mode='Markdown')

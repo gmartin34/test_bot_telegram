@@ -117,12 +117,10 @@ def create_general_content():
                                             html.Td(f"{data['num_pri_bien_por']:.1f}%", className="text-center text-info")
                                         ]),
                                         html.Tr([
-                                            html.Td("Mejora en Segundo Intento"),
-                                            html.Td("-", className="text-center"),
+                                            html.Td("Segundo Intento"),
+                                            html.Td(f"{data['tot_second_attempt']:,}", className="text-center"),
                                             html.Td(
-                                                f"+{abs(data['por_acierto'] - data['num_pri_bien_por']):.1f}%", 
-                                                className="text-center text-warning"
-                                            )
+                                                f"{data['num_segun_bien_por']:.1f}%", className="text-center text-warning")
                                         ])
                                     ])
                                 ], striped=True, hover=True, size="sm")

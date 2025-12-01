@@ -9,7 +9,9 @@ from database.db_sql import (
     load_questions_by_level, 
     check_student_registration, 
     chat_id_result,
-    get_student_level
+    get_student_level,
+    check_number_question_level,
+    promote_student_level
 )
 
 # Diccionario global para guardar el progreso de cada usuario
@@ -171,8 +173,9 @@ def iniciar_juego(bot, chat_id, db):
     
     # Cargar preguntas del nivel del estudiante
     nivel = session["nivel"]
+    student_id = session["student_id"]
     print(f"[INICIAR] Cargando preguntas del nivel {nivel}")
-    questions = load_questions_by_level(db, nivel)
+    questions = load_questions_by_level(db, nivel, student_id)
     
     if not questions or len(questions) == 0:
         print(f"[INICIAR] No hay preguntas para el nivel {nivel}")
@@ -207,10 +210,10 @@ def iniciar_juego(bot, chat_id, db):
     
     # Enviar primera pregunta
     print(f"[INICIAR] Enviando primera pregunta")
-    send_question(bot, chat_id)
+    send_question(bot, chat_id, db, student_id)
     
 
-def send_question(bot, chat_id):
+def send_question(bot, chat_id, db, student_id):
     """
     Envía la siguiente pregunta al usuario
     Controla el flujo del cuestionario y el formato de las preguntas
@@ -219,6 +222,7 @@ def send_question(bot, chat_id):
         bot: Instancia del bot de Telegram
         chat_id: ID del chat del usuario
     """
+    print("Informacion Args:", bot, chat_id, db, student_id)
     session = quiz_sessions.get(chat_id)
     
     if not session:
@@ -232,17 +236,36 @@ def send_question(bot, chat_id):
     
     # Verificar si quedan preguntas
     if session["current_index"] >= len(session["questions"]):
-        print(f"[PREGUNTA] Usuario {chat_id} completó todas las preguntas")
-        bot.send_message(
-            chat_id, 
-            "🎉 *¡Felicitaciones!*\n\n"
-            "Has completado todas las preguntas disponibles.\n\n"
-            "📊 Usa /visionado para ver tus estadísticas\n"
-            "🏆 Usa /clasificacion para ver tu posición en el ranking\n"
-            "⬆️ Usa /promocion para verificar si puedes subir de nivel",
-            parse_mode='Markdown'
-        )
+        
+        
+        # Verificar completitud del nivel actual
+        db.reconnect()
+        total_preguntas, preguntas_respondidas, nivel = check_number_question_level(db, student_id)
+        print(f"[PREGUNTA] Nivel completado: {preguntas_respondidas}/{total_preguntas} preguntas respondidas")
+        if preguntas_respondidas != 0:            
+            bot.send_message(
+                chat_id, 
+                "🎉 *¡Felicitaciones!*\n\n"
+                "Has contestado a la tanda de preguntas propuestas.\n\n"
+                "📊 Usa /misnumeros para ver tus estadísticas\n"
+                "🏆 Usa /clasificacion para ver tu posición en el ranking\n"
+                "⬆️ Usa /promocion para verificar si puedes subir de nivel",
+                parse_mode='Markdown'
+            )
+        else:
+            promote_student_level(db, student_id)
+            bot.send_message(
+                chat_id,
+                 "🎉 *¡Felicitaciones!*\n\n"
+                 f"Has subido al nivel {nivel + 1}.\n\n" 
+                "📊 Usa /misnumeros para ver tus estadísticas\n"
+                "🏆 Usa /clasificacion para ver tu posición en el ranking\n"
+                "⬆️ Usa /promocion para verificar si puedes subir de nivel",
+                parse_mode='Markdown'
+            )
+
         # Limpiar sesión
+        db.close()
         del quiz_sessions[chat_id]
         return
     
@@ -265,7 +288,7 @@ def send_question(bot, chat_id):
     print(f"[PREGUNTA] Enviando pregunta {current_index + 1}/{len(session['questions'])} (ID: {question_id}) a {chat_id}")
     
     # Crear el markup con botones
-    markup = buttons_play()
+    #markup = buttons_play()
     
     # Formatear el mensaje según el número de opciones
     if opcion3 is None or opcion4 is None:
@@ -277,6 +300,7 @@ def send_question(bot, chat_id):
             f"🔴 *Opción 1:* {opcion1}\n"
             f"🔵 *Opción 2:* {opcion2}\n"
         )
+        cuatro_opciones = False
     else:
         # 4 opciones
         format_question_text = (
@@ -288,6 +312,10 @@ def send_question(bot, chat_id):
             f"🟢 *Opción 3:* {opcion3}\n"
             f"🟣 *Opción 4:* {opcion4}\n"
         )
+        cuatro_opciones = True
+    
+    # Crear el markup con botones
+    markup = buttons_play(cuatro_opciones)
     
     # Enviar pregunta
     sent_message = bot.send_message(

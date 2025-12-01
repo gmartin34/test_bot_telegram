@@ -3,11 +3,12 @@
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-def buttons_play():
+def buttons_play(cuatro_opciones):   
     
-    keyboard = [
+    if cuatro_opciones:
+        keyboard = [
         [ InlineKeyboardButton("🔴 Opción 1", callback_data='1',
-                                test='uno',
+                                test='uno0',
                                 style='background-colo: red;color: white;'),
           InlineKeyboardButton("🔵 Opción 2", callback_data='2',
                                 test='dos',
@@ -19,13 +20,29 @@ def buttons_play():
                                 test='cuatro',
                                 style='background-colo: purple;color: white;')                                          
           ]
+      #   [
+      #     InlineKeyboardButton("➡️ Opción", callback_data="next"),
+      #     InlineKeyboardButton("✅ Respuesta", callback_data="question"),
+      #     InlineKeyboardButton("⬅️ Opción", callback_data="back")
+      #   ]
+    
+       ]
+    else:    
+        keyboard = [
+        [ InlineKeyboardButton("🔴 Opción 1", callback_data='1',
+                                test='uno0',
+                                style='background-colo: red;color: white;'),
+          InlineKeyboardButton("🔵 Opción 2", callback_data='2',
+                                test='dos',
+                                style='background-colo: blue;color: white;')                                       
+          ]
     #   [
     #     InlineKeyboardButton("➡️ Opción", callback_data="next"),
     #     InlineKeyboardButton("✅ Respuesta", callback_data="question"),
     #     InlineKeyboardButton("⬅️ Opción", callback_data="back")
     #   ]
     
-     ]
+       ]
     #recibe el mensaje
 
     reply_markup = InlineKeyboardMarkup(keyboard)

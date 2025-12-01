@@ -89,7 +89,7 @@ def help_command(message):
 
 /jugar - Iniciar una partida de preguntas
 /clasificacion - Ver tu posición en el ranking
-/visionado - Consultar tus estadísticas
+/misnumeros - Consultar tus estadísticas
 /promocion - Verificar promoción de nivel
 /registro - Registrarse en el sistema
 /ayuda - Mostrar esta ayuda
@@ -110,7 +110,6 @@ def callback_handler(call):
 
 
 # ========== FUNCIONES ASÍNCRONAS PARA PYTHON-TELEGRAM-BOT ==========
-# (Estas son para futura expansión o comandos adicionales si se necesitan)
 
 async def start_async(update: Update, context: CallbackContext) -> None:
     """Handler asíncrono alternativo para /start"""

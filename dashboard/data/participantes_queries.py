@@ -30,7 +30,7 @@ def get_datos_participantes():
         SELECT 
             id_student,
             COUNT(DISTINCT id_question) as preguntas_respondidas,
-            COUNT(DISTINCT CASE WHEN num_attempts >= 2 AND mistake_number = 0 THEN id_question END) as preguntas_retiradas,
+            COUNT(DISTINCT CASE WHEN (num_attempts - mistake_number >= 2) THEN id_question END) as preguntas_retiradas,
             SUM(num_attempts) as total_intentos,
             SUM(CASE WHEN first_attempt = 1 THEN 1 ELSE 0 END) as aciertos_primer_intento,
             COUNT(CASE WHEN num_attempts >= 1 THEN 1 END) as total_primer_intento,

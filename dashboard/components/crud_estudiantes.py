@@ -65,6 +65,9 @@ def create_crud_estudiantes_content():
         # Store para datos temporales
         dcc.Store(id="temp-action-data"),
         
+        # ← AÑADIR: Store para estados iniciales de los estudiantes
+        dcc.Store(id="student-states-store", data={}),
+        
         # Div para notificaciones
         html.Div(id="notification-estudiantes")
     ])
@@ -74,7 +77,8 @@ def create_crud_estudiantes_content():
 
 @callback(
     [Output('tabla-pendientes-container', 'children'),
-     Output('tabla-activos-container', 'children')],
+     Output('tabla-activos-container', 'children'),
+     Output('student-states-store', 'data')],  
     Input('refresh-estudiantes-btn', 'n_clicks'),
     Input('notification-estudiantes', 'children')
 )     
@@ -83,10 +87,13 @@ def refresh_tables(n_clicks, notification):
     
     # Obtener datos
     df_pendientes = get_estudiantes_pendientes()
-
-    print("DF Pendientes:", df_pendientes )
-
+    print("DF Pendientes:", df_pendientes)
     df_activos = get_estudiantes_activos()
+    
+    # Crear diccionario con estados actuales
+    states_dict = {}
+    if not df_activos.empty:
+        states_dict = {row['id']: row['state'] for _, row in df_activos.iterrows()}
     
     # Crear tabla de pendientes
     if df_pendientes.empty:
@@ -102,7 +109,7 @@ def refresh_tables(n_clicks, notification):
     else:
         tabla_activos = create_tabla_activos(df_activos)
     
-    return tabla_pendientes, tabla_activos
+    return tabla_pendientes, tabla_activos, states_dict  # ← RETORNAR ESTADOS
 
 
 def create_tabla_pendientes(df):
@@ -196,7 +203,6 @@ def create_tabla_activos(df):
         html.Tbody(rows)
     ], striped=True, hover=True, responsive=True, size="sm")
 
-
 @callback(
     [Output('confirm-modal', 'is_open'),
      Output('modal-confirm-body', 'children'),
@@ -205,45 +211,76 @@ def create_tabla_activos(df):
      Input({"type": "cambiar-estado", "index": ALL}, 'value')],
     [State({"type": "aprobar-btn", "index": ALL}, 'id'),
      State({"type": "cambiar-estado", "index": ALL}, 'id'),
-     State({"type": "cambiar-estado", "index": ALL}, 'value')],
+     State('student-states-store', 'data')],  # ← USAR STORE EN LUGAR DE cambiar_states
     prevent_initial_call=True
 )
-def show_confirmation(aprobar_clicks, cambiar_values, aprobar_ids, cambiar_ids, cambiar_states):
-    """Muestra modal de confirmación para acciones"""
+def show_confirmation(aprobar_clicks, cambiar_values, aprobar_ids, cambiar_ids, stored_states):
+    import json
     from dash import callback_context
+
     ctx = callback_context
-    
+    print("DEBUG show_confirmation ctx.triggered:", ctx.triggered)
+
     if not ctx.triggered:
         return False, "", None
-    
-    trigger_id = ctx.triggered[0]['prop_id']
-    
-    # Aprobar estudiante
-    if 'aprobar-btn' in trigger_id:
-        # Encontrar qué botón fue clickeado
-        for i, clicks in enumerate(aprobar_clicks or []):
-            if clicks:
-                student_id = aprobar_ids[i]['index']
-                return True, f"¿Está seguro de aprobar al estudiante ID {student_id}?", {
-                    "action": "aprobar",
-                    "student_id": student_id
-                }
-    
-    # Cambiar estado
-    elif 'cambiar-estado' in trigger_id:
-        # Encontrar qué select cambió
-        for i, (id_dict, value) in enumerate(zip(cambiar_ids or [], cambiar_states or [])):
-            student_id = id_dict['index']
-            estado_texto = "Activo" if value == "A" else "Baja"
-            return True, f"¿Está seguro de cambiar el estado del estudiante ID {student_id} a {estado_texto}?", {
-                "action": "cambiar_estado",
-                "student_id": student_id,
-                "nuevo_estado": value
-            }
-    
+
+    # Tomar solo el trigger real
+    triggered = ctx.triggered[0]
+    prop_id = triggered.get('prop_id')
+    if not prop_id:
+        return False, "", None
+
+    trigger_part = prop_id.split('.')[0]
+    try:
+        trigger_id = json.loads(trigger_part)
+    except Exception:
+        trigger_id = None
+
+    # Botón aprobar
+    if trigger_id and trigger_id.get("type") == "aprobar-btn":
+        student_id = trigger_id.get("index")
+        # Verificar que el click no sea None
+        idx = next((i for i, id_dict in enumerate(aprobar_ids) if id_dict.get("index") == student_id), None)
+        if idx is not None and aprobar_clicks[idx] is None:
+            return False, "", None
+        
+        return True, f"¿Está seguro de aprobar al estudiante ID {student_id}?", {
+            "action": "aprobar",
+            "student_id": student_id
+        }
+
+    # Select cambiar-estado
+    if trigger_id and trigger_id.get("type") == "cambiar-estado":
+        student_id = trigger_id.get("index")
+        
+        # Obtener el índice del estudiante
+        idx = next((i for i, id_dict in enumerate(cambiar_ids) if id_dict.get("index") == student_id), None)
+        if idx is None:
+            return False, "", None
+        
+        # Obtener nuevo valor del select
+        nuevo_valor = cambiar_values[idx] if idx < len(cambiar_values) else None
+        
+        # ← OBTENER VALOR ORIGINAL DEL STORE
+        valor_original = stored_states.get(str(student_id))  # Convertir a string por si acaso
+        
+        print(f"DEBUG student_id: {student_id}")
+        print(f"DEBUG valor_original (store): {valor_original}")
+        print(f"DEBUG nuevo_valor: {nuevo_valor}")
+        
+        # Verificar que realmente haya cambiado
+        if nuevo_valor == valor_original or nuevo_valor is None:
+            print(f"DEBUG: No hay cambio real")
+            return False, "", None
+        
+        estado_texto = "Activo" if nuevo_valor == "A" else "Baja"
+        return True, f"¿Está seguro de cambiar el estado del estudiante ID {student_id} a {estado_texto}?", {
+            "action": "cambiar_estado",
+            "student_id": student_id,
+            "nuevo_estado": nuevo_valor
+        }
+
     return False, "", None
-
-
 @callback(
     [Output('notification-estudiantes', 'children', allow_duplicate=True),
      Output('confirm-modal', 'is_open', allow_duplicate=True)],

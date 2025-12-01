@@ -9,10 +9,13 @@ from database.db_sql import register_answer
 def callback_response(bot, call: CallbackQuery):
     chat_id = call.message.chat.id
     session = quiz_sessions.get(chat_id)
+
+# IMPORTANTE: Registrar la respuesta en la base de datos
+    student_id = session.get("student_id")
     
     # Manejar confirmacion de jugar
     if call.data.startswith("confirmar_jugar_"):
-        # Eliminar el mensaje de confirmaci��n
+        # Eliminar el mensaje de confirmacion
         bot.delete_message(chat_id, call.message.message_id)
         
         # Iniciar el juego
@@ -49,7 +52,7 @@ def callback_response(bot, call: CallbackQuery):
         if current_page > 0:
             session["current_option_page"] = current_page - 1
             bot.delete_message(chat_id, call.message.message_id)
-            send_question(bot, chat_id)
+            send_question(bot, chat_id, db, student_id)
         bot.answer_callback_query(call.id)
         return
     
@@ -63,7 +66,7 @@ def callback_response(bot, call: CallbackQuery):
         if current_page < total_options - 1:
             session["current_option_page"] = current_page + 1
             bot.delete_message(chat_id, call.message.message_id)
-            send_question(bot, chat_id)
+            send_question(bot, chat_id, db, student_id)
         bot.answer_callback_query(call.id)
         return
     
@@ -92,11 +95,11 @@ def callback_response(bot, call: CallbackQuery):
         bot.edit_message_reply_markup(chat_id, call.message.message_id, reply_markup=None)
         bot.edit_message_text(f" {format_question_text} ", chat_id, call.message.message_id, parse_mode="HTML")
         
-        # IMPORTANTE: Registrar la respuesta en la base de datos
-        student_id = session.get("student_id")
+
         if student_id:
             db = db_connection()
             success = register_answer(db, student_id, question_id, is_correct)
+            print("Registro respuesta:", success)
             db.close()
             
             if not success:
@@ -107,4 +110,4 @@ def callback_response(bot, call: CallbackQuery):
         session["message_id"] = call.message.message_id  # Actualizar message_id para la siguiente pregunta
         
         # Enviar siguiente pregunta
-        send_question(bot, chat_id)
+        send_question(bot, chat_id, db, student_id)

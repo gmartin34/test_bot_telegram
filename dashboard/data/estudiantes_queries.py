@@ -26,7 +26,8 @@ def get_estudiantes_pendientes():
     # Simular fecha de registro basada en el ID (temporal)
     if not df.empty:
     #    df['fecha_registro'] = pd.to_datetime('2024-01-01') + pd.to_timedelta(df['fecha_registro'], unit='D')
-         df['fecha_registro'] = pd.to_datetime(datetime.now().date()) + pd.to_timedelta(df['fecha_registro'], unit='D') 
+    #     df['fecha_registro'] = pd.to_datetime(datetime.now().date()) + pd.to_timedelta(df['fecha_registro'], unit='D') 
+         df['fecha_registro'] = pd.to_datetime(datetime.now())
     return df
 
 

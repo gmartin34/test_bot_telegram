@@ -22,7 +22,9 @@ def get_estadisticas_intentos():
         COALESCE(SUM(num_attempts), 0) as total_intentos,
         COALESCE(SUM(mistake_number), 0) as total_fallos,
         COUNT(*) as total_registros,
-        COALESCE(SUM(CASE WHEN first_attempt = 1 THEN 1 ELSE 0 END), 0) as aciertos_primer_intento
+        COALESCE(SUM(CASE WHEN first_attempt = 1 THEN 1 ELSE 0 END), 0) as aciertos_primer_intento,
+        COALESCE( SUM(CASE  WHEN num_attempts >= 2 AND second_attempt = 1 THEN 1 ELSE 0 END), 0) as aciertos_segundo_intento,
+        COALESCE( SUM(CASE  WHEN num_attempts >= 2 THEN 1 ELSE 0 END), 0) as total_segundo_intento
     FROM student_question
     """
     result = execute_query(query)
@@ -32,18 +34,23 @@ def get_estadisticas_intentos():
         total_fallos = result[0][1]
         total_registros = result[0][2]
         aciertos_primer = result[0][3]
+        aciertos_segundo = result[0][4]
+        total_segundo_intento = result[0][5]
         
         # Cálculo correcto de porcentajes
         porcentaje_acierto = ((total_intentos - total_fallos) / total_intentos * 100) if total_intentos > 0 else 0
         porcentaje_primer_intento = (aciertos_primer / total_registros * 100) if total_registros > 0 else 0
+        porcentaje_segundo_intento = (aciertos_segundo / total_segundo_intento * 100) if total_registros > 0 else 0
         
         return {
             "total_intentos": total_intentos,
             "total_fallos": total_fallos,
             "total_registros": total_registros,
             "aciertos_primer_intento": aciertos_primer,
+            "total_segundo_intento": total_segundo_intento,
             "porcentaje_acierto": round(porcentaje_acierto, 2),
-            "porcentaje_primer_intento": round(porcentaje_primer_intento, 2)
+            "porcentaje_primer_intento": round(porcentaje_primer_intento, 2),
+            "porcentaje_segundo_intento": round(porcentaje_segundo_intento, 2)
         }
     
     return {
@@ -51,8 +58,10 @@ def get_estadisticas_intentos():
         "total_fallos": 0,
         "total_registros": 0,
         "aciertos_primer_intento": 0,
+        "total_segundo_intento": 0,
         "porcentaje_acierto": 0,
-        "porcentaje_primer_intento": 0
+        "porcentaje_primer_intento": 0,
+        "porcentaje_segundo_intento": 0
     }
 
 
@@ -147,6 +156,8 @@ def progreso_estudiantes():
             "por_acierto": estadisticas["porcentaje_acierto"],
             "num_first_attempt": estadisticas["total_registros"],
             "num_pri_bien_por": estadisticas["porcentaje_primer_intento"],
+            "tot_second_attempt": estadisticas["total_segundo_intento"],
+            "num_segun_bien_por": estadisticas["porcentaje_segundo_intento"],
             "df_actividad_mensual": df_actividad_mensual
         }
         
